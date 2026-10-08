@@ -5,3 +5,4 @@ jobs/
 engines/build/
 *.zip
 *.jar
+engines/lua-5.1.5/

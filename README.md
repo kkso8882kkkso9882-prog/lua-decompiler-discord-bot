@@ -45,6 +45,16 @@
 - `src/engines.js` — รายการเครื่องมือ + วิธีเรียก
 - `engines/` — เครื่องมือที่รวบรวมมาทั้งหมด
 
+## รันบน Android (Termux)
+พื้นที่ `/storage/emulated/0` **ห้าม execute binary** (EACCES) — ต้องย้ายโปรเจกต์ไปที่ home ก่อน:
+```bash
+cp -r /storage/emulated/0/Download/lua-decompiler-discord-bot ~/
+cd ~/lua-decompiler-discord-bot
+sh setup.sh
+npm start
+```
+บอทจะ copy binary ไปที่ tmp ที่ execute ได้ให้อัตโนมัติ
+
 ## หมายเหตุ
 - ห้าม commit ไฟล์ `.env` (ตั้ง gitignore ไว้แล้ว)
 - บางเครื่องมือต้อง build เพิ่ม (เช่น .NET, Java) จะถูกข้ามไปก่อนหากยังไม่พร้อม

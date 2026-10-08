@@ -5,37 +5,25 @@ const engines = require('./engines.js');
 
 const ROOT = path.join(__dirname, '..');
 const TMP = path.join(ROOT, 'tmp');
-
 if (!fs.existsSync(TMP)) fs.mkdirSync(TMP, { recursive: true });
 
-// ตรวจว่า output "ดูดี" พอจะถือว่าถอดได้จริง
 function looksLikeValidLua(text) {
   if (!text || text.length < 10) return false;
-  // ถ้ายังเต็มไปด้วยอักขระแปลกๆ / bytecode header = ยังไม่สำเร็จ
   const printable = text.replace(/[\x20-\x7E\r\n\t]/g, '').length;
   return printable / text.length < 0.3;
 }
 
 function detectKind(buf) {
   const head = buf.slice(0, 64);
-  if (head[0] === 0x1b && head.slice(1,4).toString() === 'Lua') return 'bytecode-lua';
-  if (head[0] === 0x1b && head.slice(1,4).toString() === 'LJ') return 'bytecode-luajit';
-  const text = buf.slice(0, 4096).toString('utf8');
-  if (/getfenv|obfuscated|moonveil|moonsec|luraph|psu obfuscated/i.test(text)) return 'obfuscated-lua';
+  if (head[0] === 0x1b && head.slice(1, 4).toString() === 'Lua') return 'bytecode-lua';
+  if (head[0] === 0x1b && head.slice(1, 4).toString() === 'LJ') return 'bytecode-luajit';
+  const text = buf.slice(0, 8192).toString('utf8');
+  if (/getfenv\(|moonveil|moonsec|luraph|obfuscated using psu|prometheus|ironbrew/i.test(text)) return 'obfuscated-lua';
+  // ไฟล์ที่เข้ารหัสแบบ base64/อักขระกลุ้ม
+  const printable = text.replace(/[\x20-\x7E\r\n\t]/g, '').length;
+  if (buf.length > 500 && printable / Math.max(buf.length, 1) > 0.5 && !/function|local|end|print/i.test(text)) return 'maybe-encoded';
   return 'plain-lua';
 }
-
-// หมายเหตุ: เครื่องมือ bytecode ที่ต้อง build ไว้แล้วจะถูกเรียงแบบ lazy:
-//   ถ้า binary ยังไม่มีจะข้าม
-function engineAvailable(e) {
-  try {
-    const probe = runProbe(e);
-    return probe;
-  } catch {
-    return true; // ถ้าเช็คไม่ได้ ลองยิงจริงไปเลย
-  }
-}
-function runProbe(e) { return e.optional ? fs.existsSync(e.bin || '') : true; }
 
 async function decompileChain(inputBuf, log) {
   const lines = [];
@@ -48,11 +36,18 @@ async function decompileChain(inputBuf, log) {
   const kind = detectKind(inputBuf);
   lines.push(`ตรวจพบประเภทไฟล์: ${kind}`);
 
-  // เรียงลำดับเครื่องมือตามชนิดไฟล์
+  // ===== กรณี 1: plain-lua = อ่านได้อยู่แล้ว ไม่ต้องถอด =====
+  if (kind === 'plain-lua') {
+    lines.push('ไฟล์นี้เป็น Lua ธรรมดาที่อ่านได้อยู่แล้ว — ไม่มีอะไรต้องถอดรหัส');
+    fs.rmSync(workDir, { recursive: true, force: true });
+    return { success: true, text: inputBuf.toString('utf8'), engine: '(ไฟล์เดิม ไม่ต้องถอด)', report: lines.join('\n'), workDir: null };
+  }
+
+  // ===== เรียงลำดับเครื่องมือตามชนิดไฟล์ =====
   let ordered = engines;
-  if (kind === 'bytecode-lua') ordered = engines.filter(e => ['luadec (Lua 5.1 bytecode)'].includes(e.name)).concat(engines.filter(e => !e.type));
-  else if (kind === 'bytecode-luajit') ordered = engines.filter(e => e.name.includes('ljd'));
-  else if (kind === 'obfuscated-lua') ordered = engines.filter(e => e.name.match(/VMP|Prometheus|PSU/));
+  if (kind === 'bytecode-lua') ordered = engines.filter(e => e.name.includes('luadec')).concat(engines.filter(e => !e.type && !e.name.includes('luadec')));
+  else if (kind === 'bytecode-luajit') ordered = engines.filter(e => e.name.includes('ljd') || e.name.includes('luajit'));
+  else if (kind === 'obfuscated-lua' || kind === 'maybe-encoded') ordered = engines.filter(e => e.name.match(/VMP|Prometheus|PSU|MoonSec|Luraph|IronBrew/));
 
   let result = null;
   for (const eng of ordered) {
@@ -69,16 +64,17 @@ async function decompileChain(inputBuf, log) {
       }
       lines.push(`${eng.name}: ผลลัพธ์ไม่ผ่านเกณฑ์ ไปตัวถัดไป`);
     } catch (err) {
-      lines.push(`${eng.name}: ล้มเหลว (${String(err.message).split('\n')[0]}) ไปตัวถัดไป`);
+      const em = String(err.message || err).split('\n')[0];
+      lines.push(`${eng.name}: ล้มเหลว (${em}) ไปตัวถัดไป`);
     }
   }
 
   if (!result) {
-    lines.push('หมดเครื่องมือแล้ว ยังถอดไม่สำเร็จ — รอรับไฟล์ใหม่/เครื่องมือรุ่นใหม่');
+    lines.push('หมดเครื่องมือแล้ว ยังถอดไม่สำเร็จ — ไฟล์อาจใช้ระบบ obfuscate ที่ยังไม่รองรับ');
     fs.rmSync(workDir, { recursive: true, force: true });
     return { success: false, report: lines.join('\n') };
   }
-  return { success: true, text: result.text, engine: result.engine, report: lines.join('\n'), workDir };
+  return { success: true, text: result.text, engine: result.engine, report: lines.join('\n'), workDir: result.workDir };
 }
 
 module.exports = { decompileChain, detectKind, looksLikeValidLua };

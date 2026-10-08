@@ -1,4 +1,3 @@
-function outputFile2(p){return p;}
 // รายการเครื่องมือถอดรหัส เรียงตามลำดับที่ลอง ถ้าตัวไหนพังจะส่งต่อให้ตัวถัดไป
 const { execFileSync } = require('child_process');
 const fs = require('fs');
@@ -7,6 +6,19 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const ENGINES_DIR = path.join(ROOT, 'engines');
 const TMP = path.join(ROOT, 'tmp');
+
+const os = require('os');
+// /storage/emulated/0 บน Android ห้าม execute → copy ไป tmp ที่ execute ได้เสมอ
+function ensureExecutable(bin) {
+  const p = path.join(ROOT, bin);
+  try { fs.accessSync(p, fs.constants.X_OK); return p; } catch {}
+  try {
+    const dest = path.join(os.tmpdir(), 'luadec-' + path.basename(bin));
+    fs.copyFileSync(p, dest);
+    fs.chmodSync(dest, 0o755);
+    return dest;
+  } catch { return p; }
+}
 
 function cmd(bin, args, opts = {}) {
   return (inputFile, outputFile) => {
@@ -48,8 +60,8 @@ module.exports = [
     name: 'luadec (Lua 5.1 bytecode)',
     type: 'bytecode',
     run: (inp, out) => {
-      const res = execFileSync(path.join(ROOT, 'engines/luadec/luadec-bin'), [inp], { timeout: 60000, encoding: 'utf8' });
-      fs.writeFileSync(outputFile2(out), res);
+      const res = execFileSync(ensureExecutable('engines/luadec/luadec-bin'), [inp], { timeout: 60000, encoding: 'utf8' });
+      fs.writeFileSync(out, res);
       return out;
     }
   },
@@ -57,7 +69,7 @@ module.exports = [
     name: 'ljd (LuaJIT bytecode)',
     type: 'bytecode',
     run: (inp, out) => {
-      const res = execFileSync('python3', ['main.py', inp], { cwd: path.join(ENGINES_DIR, 'ljd'), timeout: 60000, encoding: 'utf8' });
+      const res = execFileSync('python3', ['-m', 'ljd', inp], { cwd: path.join(ENGINES_DIR, 'ljd'), timeout: 60000, encoding: 'utf8' });
       fs.writeFileSync(out, res);
       return out;
     }
