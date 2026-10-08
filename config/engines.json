@@ -1,0 +1,14 @@
+{
+  "engines": [
+    {"name":"MoonVeil/MoonSec-family (luau-vmp-deobf, รองรับ MoonVeil v1.4.x, Luraph v14.7, MoonSec)","cmd":"python3 engines/luau-vmp-deobf/luauvmp/main.py {input} -o {output}","type":"luau-vmp","detect":["moonveil","moonsec"],"priority":1},
+    {"name":"Luraph V15 Deobfuscator","cmd":"node engines/Luraph-V15-Deobfuscator/deob.js {input} {output}","type":"luraph15","detect":["luraph"],"priority":2},
+    {"name":"Moonsec V3 Deobfuscator","cmd":"python3 engines/moonsec-v3-deobfuscator/main.py {input} {output}","type":"moonsec3","detect":["moonsec"],"priority":3},
+    {"name":"Prometheus Deobfuscator","cmd":"python3 engines/Prometheus-Deobfuscator/pol.py {input} {output}","type":"prometheus","detect":["prometheus"],"priority":4},
+    {"name":"PSU Deobfuscator","cmd":"node engines/PSU-Deobfuscator/main.js {input} {output}","type":"psu","detect":["psu","this file was obfuscated using psu"],"priority":5},
+    {"name":"Lua5.1/5.2/5.3 luadec","cmd":"engines/luadec/luadec {input}","type":"bytecode","detect":["bytecode","luac"],"priority":6},
+    {"name":"ljd (LuaJIT Decompiler)","cmd":"python3 engines/ljd/main.py {input}","type":"luajit","detect":["luajit"],"priority":7},
+    {"name":"luajit-decompiler-v2","cmd":"engines/luajit-decompiler-v2/build/main {input}","type":"luajit2","detect":["luajit"],"priority":8},
+    {"name":"unluau (Luau)',' cmd":"dotnet engines/unluau/...","type":"luau","detect":["luau"],"priority":9},
+    {"name":"luauDec","cmd":"engines/luauDec/build/luauDec {input}","type":"luau2","detect":["luau"],"priority":10}
+  ]
+}

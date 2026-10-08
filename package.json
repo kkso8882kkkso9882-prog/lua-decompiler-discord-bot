@@ -1,0 +1,14 @@
+{
+  "name": "lua-decompiler-bot",
+  "version": "1.0.0",
+  "description": "Discord bot ถอดรหัสไฟล์ .lua ด้วยเครื่องมือ open-source หลายตัวต่อกัน",
+  "main": "src/bot.js",
+  "scripts": {
+    "start": "node src/bot.js",
+    "test": "node src/test.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5"
+  }
+}
