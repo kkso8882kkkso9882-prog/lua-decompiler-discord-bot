@@ -546,21 +546,44 @@ end)
     return header
 
 if __name__ == "__main__":
-    target = sys.argv[1] if len(sys.argv) > 1 else "https://pastefy.app/B1F7cbVw/raw"
+    is_json = "--json" in sys.argv
+    args = [a for a in sys.argv[1:] if a != "--json"]
+    target = args[0] if len(args) > 0 else "https://pastefy.app/B1F7cbVw/raw"
+    output_file = args[1] if len(args) > 1 else "deobfuscated_output.lua"
+
     if target.startswith("http://") or target.startswith("https://"):
-        print(f"Fetching {target}...")
         source = fetch_url(target)
     else:
         with open(target, "r") as f:
             source = f.read()
 
     result = deobfuscate_moonveil(source)
-    print(result["report"])
-    print("\n--- DEOBFUSCATED PREVIEW (first 60 lines) ---")
-    for line in result["deobfuscated_code"].splitlines()[:60]:
-        print(line)
-
-    output_file = sys.argv[2] if len(sys.argv) > 2 else "deobfuscated_output.lua"
     with open(output_file, "w") as f:
         f.write(result["deobfuscated_code"])
-    print(f"\nSaved deobfuscated code to: {output_file}")
+
+    if is_json:
+        # Output JSON result
+        json_resp = {
+            "success": result["success"],
+            "deobfuscated_code": result["deobfuscated_code"],
+            "confidence_score": result["confidence_score"],
+            "report": result["report"],
+            "security_findings": result["security_findings"],
+            "strings_count": len(result["strings"]),
+            "strings": result["strings"],
+            "stats": {
+                "original_bytes": len(source),
+                "deobfuscated_bytes": len(result["deobfuscated_code"]),
+                "reduction_percent": round((1 - len(result["deobfuscated_code"]) / max(len(source), 1)) * 100, 1),
+                "unique_strings": len(result["strings"]),
+                "secondary_payloads_count": len(result.get("secondary_payloads", {}))
+            }
+        }
+        print("__JSON_OUTPUT_START__" + json.dumps(json_resp) + "__JSON_OUTPUT_END__")
+    else:
+        print(result["report"])
+        print("\n--- DEOBFUSCATED PREVIEW (first 60 lines) ---")
+        for line in result["deobfuscated_code"].splitlines()[:60]:
+            print(line)
+        print(f"\nSaved deobfuscated code to: {output_file}")
+
