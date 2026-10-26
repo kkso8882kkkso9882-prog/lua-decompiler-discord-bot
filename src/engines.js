@@ -38,6 +38,20 @@ function py(mod, args = [], opts = {}) {
 
 module.exports = [
   {
+    name: 'MoonVeil 2.x Auto-Deobfuscator (AST/VM Devirtualizer)',
+    detect: (src) => /moonveil|\}:W\(|d:qa\(d\.ba|s:qa\(s\.ba/i.test(src),
+    run: (inp, out) => {
+      const scriptPath = path.join(ENGINES_DIR, 'moonveil-deobfuscator', 'moonveil_deobfuscator.py');
+      execFileSync('python3', [scriptPath, inp, out], {
+        cwd: path.dirname(scriptPath),
+        timeout: 120000,
+        stdio: 'pipe'
+      });
+      return out;
+    }
+  },
+
+  {
     name: 'MoonVeil/MoonSec/Luraph family (luau-vmp-deobf)',
     detect: (src) => /getfenv\(|synapse|xen|moonveil|moonsec|luraph|②|③/i.test(src),
     run: py('engines/luau-vmp-deobf/luauvmp/cli.py')

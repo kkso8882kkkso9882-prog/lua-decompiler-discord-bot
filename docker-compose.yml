@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  lua-decompiler-bot:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./tmp:/app/tmp
+      - ./jobs:/app/jobs

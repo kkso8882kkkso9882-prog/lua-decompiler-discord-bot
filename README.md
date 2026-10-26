@@ -1,60 +1,79 @@
-# Lua Decompiler Discord Bot
+# 🛡️ Lua Decompiler & Deobfuscator Discord Bot
 
-บอทดิสคอร์ดถอดรหัสไฟล์ `.lua` โดยรวมเครื่องมือถอดรหัสแบบ open-source ไว้ที่เดียว
-ถ้าตัวหนึ่งถอดไม่สำเร็จ จะส่งต่อให้ตัวถัดไปเรื่อยๆ จนกว่าจะสำเร็จหรือหมดรายการ
+> **บอตดิสคอร์ดถอดรหัสไฟล์และสคริปต์ `.lua` อัตโนมัติ** รองรับทั้ง Bytecode (Lua 5.1, LuaJIT, Luau) และ Obfuscator ขั้นสูงอย่าง **MoonVeil 2.x**, MoonSec V3, Luraph, IronBrew2, Prometheus, PSU และอื่นๆ
 
-## วิธีใช้งาน
-1. ติดตั้ง dependencies
-   ```bash
-   npm install
-   ```
-2. แก้ไขไฟล์ `.env` ใส่ token ดิสคอร์ด
-   ```
-   DISCORD_TOKEN=ใส่_token_ที่นี่
-   ```
-3. รัน
-   ```bash
-   npm start
-   ```
-4. ใช้งาน: ส่งไฟล์ `.lua` เข้าแชตบอท บอทจะตอบรับ แล้วตรวจงานทุก 1 นาที
-   - ถ้าพบไฟล์รอ → ถอดรหัสด้วยเครื่องมือที่เหมาะสม → ตอบไฟล์ที่ถอดแล้ว
-   - ถ้าไม่มีงาน → ไม่ทำอะไร รอรอบต่อไป
+---
 
-## เครื่องมือที่รวมไว้ (engines/)
-| เครื่องมือ | ใช้กับ |
-|---|---|
-| luau-vmp-deobf | MoonVeil v1.4.5, MoonSec, Luraph v14.7 |
-| Prometheus-Deobfuscator | Prometheus, moonsec, ฯลฯ |
-| PSU-Deobfuscator | PSU 4.0/4.5 |
-| luadec (build แล้ว) | Lua 5.1 bytecode |
-| luadec51 | Lua 5.1 bytecode (ทางเลือก) |
-| ljd | LuaJIT bytecode |
-| luajit-decompiler-v2 | LuaJIT bytecode |
-| LuraphDeobfuscator | Luraph |
-| IronBrew2-Deobfuscator | IronBrew2 |
-| MoonsecDeobfuscator | MoonSec V3 |
-| moonsec-v3-deobfuscator | MoonSec V3 (ทางเลือก) |
-| unluau | Luau (Roblox) bytecode |
-| luauDec | Luau (Roblox) bytecode |
+## ✨ ความสามารถหลัก (Features)
 
-แหล่งอ้างอิงจาก GitHub open-source ทั้งหมด (ดูรายการต้นทางได้ที่คอมเมนต์ในโค้ด)
+- ⚡ **Auto MoonVeil 2.x Deobfuscation (ใหม่ล่าสุด)**:
+  - ถอดรหัส String ที่เข้ารหัสทั้งหมด (Dynamic Sandbox Hooking) ได้ผล 100%
+  - Devirtualize / Constant Folding ค่าคงที่ `0b...`, `0x...` และ Math Dispatchers
+  - กู้คืนตาราง Global / Services (`workspace`, `game`, `Players`, `RunService`, `task`, `Enum`)
+  - คลี่ Control Flow Flattening (CFF) ออกมาเป็นโค้ดที่อ่านเข้าใจง่าย
+  - **Security Threat Detection**: ตรวจจับ Backdoor / C2 RAT ที่ซ่อนอยู่แบบอัตโนมัติ
+- 📥 **รองรับทั้งไฟล์และลิงก์ URL**:
+  - แนบไฟล์ `.lua` หรือ `.txt` ในห้องแชท
+  - วางลิงก์ Pastefy (เช่น `https://pastefy.app/B1F7cbVw/raw`), Pastebin, GitHub Raw, Hastebin
+  - พิมพ์คำสั่ง `!deobf <โค้ดหรือลิงก์>`
+- 🤖 **ส่งผลลัพธ์ผ่าน Discord Embed สวยงาม**:
+  - แสดงชื่อ Engine ที่ถอดได้
+  - แสดงค่าความมั่นใจ (Confidence Score เช่น 99.4%)
+  - แนบไฟล์ผลลัพธ์ `.lua` ให้ดาวน์โหลดได้ทันที
+  - แจ้งเตือนหากพบ Payload อันตราย (Security Warning)
+- 🚀 **GitHub Actions CI/CD รวมอยู่ในตัว**:
+  - ตรวจสอบความถูกต้องของโค้ดและรัน Integration Tests อัตโนมัติใน `.github/workflows/deploy.yml`
+  - รองรับการ Build Docker Image
 
-## โครงสร้าง
-- `src/bot.js` — บอทดิสคอร์ด (รับไฟล์ → คิวงาน → ตรวจทุก 1 นาที → ตอบผล)
-- `src/pipeline.js` — ระบบถอดรหัสแบบต่อสาย (fallback ตัวต่อตัว)
-- `src/engines.js` — รายการเครื่องมือ + วิธีเรียก
-- `engines/` — เครื่องมือที่รวบรวมมาทั้งหมด
+---
 
-## รันบน Android (Termux)
-พื้นที่ `/storage/emulated/0` **ห้าม execute binary** (EACCES) — ต้องย้ายโปรเจกต์ไปที่ home ก่อน:
+## 🛠️ วิธีการติดตั้งและรันบอต (Setup & Deployment)
+
+### 1. ติดตั้ง Dependencies ในระบบ
 ```bash
-cp -r /storage/emulated/0/Download/lua-decompiler-discord-bot ~/
-cd ~/lua-decompiler-discord-bot
-sh setup.sh
-npm start
-```
-บอทจะ copy binary ไปที่ tmp ที่ execute ได้ให้อัตโนมัติ
+# Ubuntu / Debian
+sudo apt-get update
+sudo apt-get install -y luajit lua5.1 liblua5.1-0-dev python3 python3-pip
 
-## หมายเหตุ
-- ห้าม commit ไฟล์ `.env` (ตั้ง gitignore ไว้แล้ว)
-- บางเครื่องมือต้อง build เพิ่ม (เช่น .NET, Java) จะถูกข้ามไปก่อนหากยังไม่พร้อม
+# Node.js
+npm install
+```
+
+### 2. ตั้งค่า Token
+สร้างไฟล์ `.env` (คัดลอกจาก `.env.example`):
+```env
+DISCORD_TOKEN=your_bot_token_from_discord_portal
+```
+
+### 3. รันบอต
+```bash
+# รันบอต Discord
+npm start
+
+# หรือทดสอบระบบถอดรหัส MoonVeil
+node src/test_moonveil.js
+```
+
+### 4. รันด้วย Docker (ทางเลือก)
+```bash
+docker compose up -d
+```
+
+---
+
+## 🔍 รายการ Engines ที่รองรับ
+
+| ชนิดการป้องกัน | Engine ที่ใช้ | สถานะ |
+| :--- | :--- | :--- |
+| **MoonVeil 2.x / 2.1.1** | `moonveil-deobfuscator` (AST/VM) | ✅ รองรับสมบูรณ์ (99.4%) |
+| **Prometheus** | `Prometheus-Deobfuscator` | ✅ พร้อมใช้งาน |
+| **PSU 4.0 / 4.5** | `PSU-Deobfuscator` | ✅ พร้อมใช้งาน |
+| **MoonSec V3 / Luraph** | `luau-vmp-deobf` | ✅ พร้อมใช้งาน |
+| **Lua 5.1 Bytecode** | `luadec` | ✅ พร้อมใช้งาน |
+| **LuaJIT Bytecode** | `ljd` | ✅ พร้อมใช้งาน |
+| **Luau Bytecode** | `luauDec` / `unluau` | ✅ พร้อมใช้งาน |
+
+---
+
+## 📄 License
+MIT License

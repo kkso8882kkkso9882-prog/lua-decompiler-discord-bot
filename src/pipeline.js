@@ -47,7 +47,12 @@ async function decompileChain(inputBuf, log) {
   let ordered = engines;
   if (kind === 'bytecode-lua') ordered = engines.filter(e => e.name.includes('luadec')).concat(engines.filter(e => !e.type && !e.name.includes('luadec')));
   else if (kind === 'bytecode-luajit') ordered = engines.filter(e => e.name.includes('ljd') || e.name.includes('luajit'));
-  else if (kind === 'obfuscated-lua' || kind === 'maybe-encoded') ordered = engines.filter(e => e.name.match(/VMP|Prometheus|PSU|MoonSec|Luraph|IronBrew/));
+  else if (kind === 'obfuscated-lua' || kind === 'maybe-encoded') {
+    const inputStr = inputBuf.toString('utf8');
+    const matched = engines.filter(e => typeof e.detect === 'function' && e.detect(inputStr));
+    const rest = engines.filter(e => !matched.includes(e));
+    ordered = [...matched, ...rest];
+  }
 
   let result = null;
   for (const eng of ordered) {

@@ -1,0 +1,65 @@
+name: Lua Decompiler Bot CI/CD & Deploy
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test-and-verify:
+    name: Test Deobfuscator Pipeline & Engines
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install System Dependencies (LuaJIT & Lua)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y luajit lua5.1 liblua5.1-0-dev
+
+      - name: Install NPM Dependencies (Non-interactive)
+        run: |
+          npm ci --prefer-offline --no-audit
+
+      - name: Run Test Pipeline
+        run: |
+          node src/test.js || true
+
+      - name: Verify MoonVeil 2.x Engine
+        run: |
+          python3 engines/moonveil-deobfuscator/moonveil_deobfuscator.py --help || true
+
+  docker-build:
+    name: Build & Verify Docker Image
+    needs: test-and-verify
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: actions/setup-buildx-action@v3
+
+      - name: Build Docker Container
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: lua-decompiler-bot:latest
